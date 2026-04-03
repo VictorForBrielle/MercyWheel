@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Chastity wheel</title>
+<style>
+body {
+  text-align: center;
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+}
+
+#wheel-container {
+  position: relative;
+  width: 500px;
+  height: 500px;
+  margin: 50px auto;
+}
+
+#wheel-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  transition: transform 4s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+#wheel {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+#labels {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: 0 0;
+  font-weight: bold;
+  font-size: 18px;
+  color: white;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+}
+
+#pointer {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-top: 30px solid red;
+  z-index: 10;
+}
+
+button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+label {
+  font-weight: bold;
+  margin-right: 5px;
+}
+</style>
+</head>
+<body>
+
+<h1>Chastity Wheel</h1>
+
+<!-- Sélecteur de couleur de fond -->
+<label for="bgColorPicker">Couleur de fond :</label>
+<input type="color" id="bgColorPicker" value="#f4f4f4">
+<br><br>
+
+<div id="wheel-container">
+  <div id="pointer"></div>
+  <div id="wheel-wrapper">
+    <img id="wheel" src="ma-roue.png" alt="Roue">
+    <div id="labels"></div>
+  </div>
+</div>
+
+<div id="resultModal" style="
+  display:none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 30px 50px;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.5);
+  font-size: 24px;
+  z-index: 20;
+">
+  <span id="modalText"></span>
+  <br><br>
+  <button id="closeModal">Close</button>
+</div>
+
+<br>
+<button id="spinBtn">Spin</button>
+<p id="result"></p>
+
+<!-- Son de rotation -->
+<audio id="spinSound" src="son-roulette.mp3"></audio>
+
+<script>
+// 🔹 Options de la roue
+const options = [
+  "+1 day", "1 day out", "-3 days", "-2 days",
+  "-1 day", "Out of jail", "+1 week", "-4 days",
+  "-1 week", "Mind Cage", "+3 days", "-5 days",
+];
+
+// éléments modale
+const resultModal = document.getElementById("resultModal");
+const modalText = document.getElementById("modalText");
+const closeModal = document.getElementById("closeModal");
+
+closeModal.addEventListener("click", () => {
+  resultModal.style.display = "none";
+});
+
+// Éléments DOM
+const wheel = document.getElementById("wheel-wrapper");
+const labelsContainer = document.getElementById("labels");
+const result = document.getElementById("result");
+const spinBtn = document.getElementById("spinBtn");
+const bgColorPicker = document.getElementById("bgColorPicker");
+const spinSound = document.getElementById("spinSound");
+
+// ⚙️ Créer les labels centrés dans chaque segment
+const radius = 200; 
+const angleStep = 360 / options.length;
+
+options.forEach((text, index) => {
+  const angle = angleStep * index;
+  const label = document.createElement("div");
+  label.className = "label";
+  label.innerText = text;
+
+  const textAngle = angle + angleStep / 2;
+  label.style.transform =
+    `rotate(${textAngle}deg) translate(${radius}px) rotate(${-textAngle}deg) translateX(-50%)`;
+
+  labelsContainer.appendChild(label);
+});
+
+// 🔹 Changer la couleur du fond
+bgColorPicker.addEventListener("input", () => {
+  document.body.style.backgroundColor = bgColorPicker.value;
+});
+
+// 🔹 Gestion du spin
+let spinning = false;
+let currentRotation = 0;
+
+spinBtn.addEventListener("click", () => {
+  if (spinning) return;
+  spinning = true;
+  spinBtn.disabled = true;
+
+  // Jouer le son
+  spinSound.currentTime = 0;
+  spinSound.loop = true;
+  spinSound.play();
+
+  // Choisir un segment et un décalage aléatoire à l'intérieur
+  const randomSegment = Math.floor(Math.random() * options.length);
+  const randomOffset = Math.random() * angleStep;
+
+  // Angle final avec plusieurs tours complets
+  const targetAngle = 5 * 360 + randomSegment * angleStep + randomOffset;
+  currentRotation += targetAngle;
+
+  // Appliquer la rotation
+  wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+  setTimeout(() => {
+    // Calculer l'option gagnante en fonction de l'angle réel
+    const normalizedAngle = (currentRotation + 90) % 360;
+    const winningIndex = options.length - 1 - Math.floor(normalizedAngle / angleStep);
+    modalText.textContent = "Your fate is : " + options[winningIndex];
+    resultModal.style.display = "block";
+
+    spinning = false;
+    spinBtn.disabled = false;
+
+    // Arrêter le son
+    spinSound.pause();
+    spinSound.currentTime = 0;
+  }, 4000);
+});
+</script>
+
+</body>
+</html>
